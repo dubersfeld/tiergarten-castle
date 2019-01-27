@@ -78,23 +78,23 @@ then open a browser and hit the URI localhost:8089 then connect. It will look li
 
 Then kill a non controller broker. The browser should look like this snapshot:
 
-![alt text](images/Dashboard2.png "Broker down")
+![alt text](images/dashboard2.png "Broker down")
 
 Restart the idle broker. Now the browser should look like this snapshot:
 
-![alt text](images/Dashboard3.png "Broker restarted")
+![alt text](images/dashboard3.png "Broker restarted")
 
 Note that for some partitions the leader changed.
 
 Kill the controller. The browser should look like this snapshot:
 
-![alt text](images/Dashboard4.png "Controller down")
+![alt text](images/dashboard4.png "Controller down")
 
 A new controller should have been elected.
 
 Restart the idle broker. The browser should look like:
 
-![alt text](images/Dashboard5.png "Broker restarted")
+![alt text](images/dashboard5.png "Broker restarted")
 
 
 
