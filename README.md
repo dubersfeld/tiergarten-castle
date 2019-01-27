@@ -20,7 +20,7 @@ In folder _yourKafkaInstallationFolder_/config make 4 copies of the file server.
   server-3.properties
   server-4.properties
 
-In each file edit the 3 lines:
+In each file edit the 3 lines (edit IP address according to your own system):
 ```
 broker.id=0
 ...
