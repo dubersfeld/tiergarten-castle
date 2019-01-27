@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Dashboard</title>
+    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/main.css" rel="stylesheet">
+   
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.js"></script>
+	<script src="https://code.jquery.com/jquery-2.2.4.js"></script>
+  
+    <script type="text/javascript" th:inline="javascript">
+    
+    var stompClient = null;
+    var startServerUrl = "" + /*[[${startServerUrl}]]*/;
+    var stopServerUrl = "" + /*[[${stopServerUrl}]]*/;
+    
+function clear() {
+	$("#members").html("");
+}    
+
+function start(uri) {
+	return function() {
+	
+		var message = {"uri" : uri};
+		$.ajax({
+			type: "POST",
+			contentType: "application/json",
+			url: startServerUrl,
+			data: JSON.stringify(message),
+			dataType: "text",// expected from server
+			success: function(data) {
+				console.log(data);
+			},
+			error: function(xhr, ajaxOptions, thrownError){
+            	console.log(xhr.status);
+        	}
+		});
+		
+		return false;
+	}; 
+} 
+
+function stop(processId) {
+	return function() {
+		var message = {"processId" : processId};
+		$.ajax({
+			type: "POST",
+			contentType: "application/json",		
+			url: stopServerUrl,
+			data: JSON.stringify(message),
+			dataType: "text",// expected from server
+			success: function(data) {
+				console.log(data);
+			},
+			error: function(xhr, ajaxOptions, thrownError){
+                console.log(xhr.status);
+            }
+		});
+		
+		return false;
+	}; 
+} 
+
+function setConnected(connected) {
+    $("#connect").prop("disabled", connected);
+    $("#disconnect").prop("disabled", !connected);
+    if (connected) {    
+        $("#kafka").show();
+        $("#topic").show();
+    }
+    else {
+        $("#kafka").hide();
+        $("#topic").hide();
+    }
+    $("#brokers").html("");
+}
+
+function connect() {
+    var socket = new SockJS('/tiergarten-websocket');
+    stompClient = Stomp.over(socket);
+    stompClient.connect({}, function (frame) {
+        setConnected(true);
+        console.log('Connected: ' + frame);
+         
+        stompClient.subscribe('/topic/kafkaDisplay', function (display) { 	
+        	console.log(JSON.parse(display.body).kafkaDisplayCluster);
+        	console.log("controllerId " + JSON.parse(display.body).kafkaDisplayCluster.controllerId);
+            	
+        	
+        	showKafkaCluster(JSON.parse(display.body).kafkaDisplayCluster);
+            
+        	showPartitions(JSON.parse(display.body).partitions);
+        });
+        
+        
+    });
+}
+
+function disconnect() {
+    if (stompClient !== null) {
+        stompClient.disconnect();
+    }
+    setConnected(false);
+    console.log("Disconnected");
+}
+
+
+function showKafkaCluster(message) {
+	// first clear display
+	$("#brokers").html("");	
+	for (var i = 0; i < message.uris.length; i++) {
+		var cont = (message.ids[i] == message.controllerId) ? "controller" : "";	
+		var insert = 'insert' + i;
+		var newRow = $("<tr></tr>");
+		newRow.append("<td>" + message.uris[i] + "</td>");
+		newRow.append("<td>" + message.ids[i] + "</td>");
+	    newRow.append("<td id=" + insert + ">" + "</td>");
+	    newRow.append("<td>" + cont + "</td>");
+		$("#brokers").append($(newRow)); 
+	}// for
+	
+	// add buttons 
+	for (var i = 0; i < message.uris.length; i++) {
+		var toto=$('<input/>').attr({
+            type: "button",
+            id: "action" + i,
+            name: "action",
+            value: 'restart'
+        });
+		if (message.ids[i] == 'idle') {
+			$("#insert" + i).append(toto);	
+		}
+	}// for
+	
+	// add callback function
+	for (var i = 0; i < message.uris.length; i++) {
+		var j = i;
+		if (message.ids[i] == 'idle') {
+			$("#action" + j).click(start(message.uris[i]));
+		}
+	}
+}
+
+function showPartitions(partitions) {
+	// first clear display
+	$("#partitions").html("");
+	var topics = Object.keys(partitions);
+	Object.keys(partitions).forEach(function(key) {
+		console.log(partitions[key]);
+		
+		var parts = partitions[key];
+			
+		for (var i = 0; i < parts.length; i++) {
+			var insert = 'insert' + i;
+			var newRow = $("<tr></tr>");
+			newRow.append("<td>" + parts[i].topic + "</td>");
+			newRow.append("<td>" + parts[i].partition + "</td>");
+			newRow.append("<td>" + parts[i].leader + "</td>");
+			newRow.append("<td>" + parts[i].replicas + "</td>");
+			newRow.append("<td>" + parts[i].inSyncReplicas + "</td>");
+			newRow.append("<td>" + parts[i].offlineReplicas + "</td>");
+			    
+			$("#partitions").append($(newRow)); 
+		}
+					
+	});
+	
+}
+
+
+$(function () {
+    $("form").on('submit', function (e) {
+        e.preventDefault();
+    });
+    $( "#connect" ).click(function() { connect(); });
+    $( "#disconnect" ).click(function() { disconnect(); });
+    $( "#send" ).click(function() { sendName(); });
+});
+    
+</script>
+</head>
+
+<body>
+<noscript><h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websocket relies on Javascript being
+    enabled. Please enable
+    Javascript and reload this page!</h2></noscript>
+<div id="main-content" class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="connect">WebSocket connection:</label>
+                    <button id="connect" class="btn btn-default" type="submit">Connect</button>
+                    <button id="disconnect" class="btn btn-default" type="submit" disabled="disabled">Disconnect
+                    </button>   
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="kafka" class="table table-striped">
+                <thead>
+                <tr>
+                    <th>URI</th><th>ID</th><th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="brokers">
+                </tbody>
+            </table>
+            <table id="topic" class="table table-striped">
+                <thead>
+                <tr>         
+                	<th>Topic</th><th>Partition</th><th>Leader</th><th>Replicas</th><th>InSyncReplicas</th><th>OfflineReplicas</th>
+                </tr>
+                </thead>
+                <tbody id="partitions">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

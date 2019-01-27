@@ -1,0 +1,28 @@
+server:
+  port: 8089
+  servlet:
+    context-path: /
+    
+websocketUrl: "ws://localhost:8089/tiergarten-websocket"
+   
+# Edit to match your own file system  
+launchPathBase: "/home/dominique/tiergarten-castle/kafka-scripts"
+  
+spring:
+  cloud:
+    zookeeper:
+      connect-string: "localhost:2181"
+
+# Edit to match your own installation
+allocatedUris:
+  "192.168.0.1:9092,192.168.0.1:9093,192.168.0.1:9094,192.168.0.1:9095,192.168.0.1:9096"
+  
+createdTopics:
+  "customerCountry,employeeCountry"  
+  
+launchCommandBase: "sudo -S ./launchBroker.sh"  
+  
+# edit to match your own sudo password
+password: mySudoPassword  
+  
+ 
